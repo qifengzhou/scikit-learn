@@ -765,7 +765,7 @@ class TimeSeriesSplit(_BaseKFold):
         super().__init__(n_splits, shuffle=False, random_state=None)
         self.max_train_size = max_train_size
 
-    def split(self, X, y=None, groups=None):
+    def split(self, X, y=None, groups=None, slit_on_days=False):
         """Generate indices to split data into training and test set.
 
         Parameters
@@ -788,27 +788,54 @@ class TimeSeriesSplit(_BaseKFold):
         test : ndarray
             The testing set indices for that split.
         """
-        X, y, groups = indexable(X, y, groups)
-        n_samples = _num_samples(X)
-        n_splits = self.n_splits
-        n_folds = n_splits + 1
-        if n_folds > n_samples:
-            raise ValueError(
-                ("Cannot have number of folds ={0} greater"
-                 " than the number of samples: {1}.").format(n_folds,
+        
+        if split_on_days == False:
+            X, y, groups = indexable(X, y, groups)
+            n_samples = _num_samples(X)
+            n_splits = self.n_splits
+            n_folds = n_splits + 1
+            if n_folds > n_samples:
+                raise ValueError(
+                        ("Cannot have number of folds ={0} greater"
+                         " than the number of samples: {1}.").format(n_folds,
                                                              n_samples))
-        indices = np.arange(n_samples)
-        test_size = (n_samples // n_folds)
-        test_starts = range(test_size + n_samples % n_folds,
+            indices = np.arange(n_samples)
+            test_size = (n_samples // n_folds)
+            test_starts = range(test_size + n_samples % n_folds,
                             n_samples, test_size)
-        for test_start in test_starts:
-            if self.max_train_size and self.max_train_size < test_start:
-                yield (indices[test_start - self.max_train_size:test_start],
+        
+            for test_start in test_starts:
+                if self.max_train_size and self.max_train_size < test_start:
+                    yield (indices[test_start - self.max_train_size:test_start],
                        indices[test_start:test_start + test_size])
+                else:
+                    yield (indices[:test_start],
+                       indices[test_start:test_start + test_size])
+        else:
+            if not isinstance(X.index, pd.DatetimeIndex):
+                raise ValueError(
+                        ("The index of the dataframe should be in datetime format, which will be split on."))
             else:
-                yield (indices[:test_start],
-                       indices[test_start:test_start + test_size])
-
+                n_samples = X.index.nunique()
+                n_splits = self.n_splits
+                n_folds = n_splits + 1
+                if n_folds > n_samples:
+                    raise ValueError(
+                            ("Cannot have number of folds ={0} greater"
+                             " than the number of samples: {1}.").format(n_folds,
+                                                                 n_samples))
+                indices = X.index.unique()
+                test_size = (n_samples // n_folds)
+                test_starts = range(test_size + n_samples % n_folds,
+                                    n_samples, test_size)
+        
+                for test_start in test_starts:
+                    if self.max_train_size and self.max_train_size < test_start:
+                        yield (indices[test_start - self.max_train_size:test_start],
+                               indices[test_start:test_start + test_size])
+                    else:
+                        yield (indices[:test_start],
+                               indices[test_start:test_start + test_size])
 
 class LeaveOneGroupOut(BaseCrossValidator):
     """Leave One Group Out cross-validator
