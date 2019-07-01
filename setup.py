@@ -38,7 +38,7 @@ LICENSE = 'new BSD'
 PROJECT_URLS = {
     'Bug Tracker': 'https://github.com/scikit-learn/scikit-learn/issues',
     'Documentation': 'https://scikit-learn.org/stable/documentation.html',
-    'Source Code': 'https://github.com/scikit-learn/scikit-learn'
+    'Source Code': 'https://github.com/qifengzhou/scikit-learn'
 }
 
 # We can actually import a restricted version of sklearn that
